@@ -101,3 +101,4 @@ php spark migrate
 ```
 php spark db:seed CommentsSeeder
 ```
+Страница комментариев находится на [localhost](http://localhost/)
