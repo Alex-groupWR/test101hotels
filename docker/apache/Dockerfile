@@ -1,7 +1,10 @@
-FROM php:7.4-apache
+FROM php:8.2-apache
+
+# Настройка Apache
 RUN echo "ServerName localhost" >> /etc/apache2/apache2.conf
-RUN apt-get update
-RUN apt-get install -y \
+
+# Установка зависимостей
+RUN apt-get update && apt-get install -y \
     git \
     zip \
     curl \
@@ -11,11 +14,14 @@ RUN apt-get install -y \
     libbz2-dev \
     libpng-dev \
     libjpeg-dev \
-    libmcrypt-dev \
-    libreadline-dev \
     libfreetype6-dev \
+    libonig-dev \
+    libxml2-dev \
+    libzip-dev \
     g++
 
+# Установка расширений PHP
+RUN docker-php-ext-configure gd --with-freetype --with-jpeg
 RUN docker-php-ext-install \
     bz2 \
     intl \
@@ -23,30 +29,37 @@ RUN docker-php-ext-install \
     opcache \
     calendar \
     pdo_mysql \
-    mysqli
+    mysqli \
+    gd \
+    mbstring \
+    xml \
+    zip
 
-# 2. set up document root for apache
+# Настройка виртуального хоста Apache
 COPY docker/apache/000-default.conf /etc/apache2/sites-available/000-default.conf
 
-# 3. mod_rewrite for URL rewrite and mod_headers for .htaccess extra headers like Access-Control-Allow-Origin-
+# Включение модулей Apache
 RUN a2enmod rewrite headers
 
-# 4. start with base php config, then add extensions
-RUN mv "$PHP_INI_DIR/php.ini-development" "$PHP_INI_DIR/php.ini"
+# Настройка php.ini
+RUN mv "$PHP_INI_DIR/php.ini-production" "$PHP_INI_DIR/php.ini"
 
-# 5. Composer
-RUN curl -sS https://getcomposer.org/installer | php
-RUN mv composer.phar /usr/local/bin/composer
+# Установка Composer
+RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
 RUN chmod +x /usr/local/bin/composer
-RUN composer self-update
 
-COPY src/ /var/www/html/
-# 6. we need a user with the same UID/GID with host user
-# so when we execute CLI commands, all the host file's ownership remains intact
-# otherwise command from inside container will create root-owned files and directories
+# Создание пользователя
 ARG uid
 RUN useradd -G www-data,root -u $uid -d /home/devuser devuser
 RUN mkdir -p /home/devuser/.composer && \
     chown -R devuser:devuser /home/devuser
+
+# Копирование исходного кода
+COPY src/ /var/www/html/
+
+# Создание папки storage и установка прав
+RUN mkdir -p /var/www/html/storage && \
+    chown -R devuser:www-data /var/www/html && \
+    chmod -R 775 /var/www/html/storage
 
 EXPOSE 80

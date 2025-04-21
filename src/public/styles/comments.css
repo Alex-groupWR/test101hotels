@@ -1,0 +1,18 @@
+.comment-card {
+    transition: all 0.3s ease;
+}
+.comment-card:hover {
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+}
+.invalid-feedback {
+    display: none;
+}
+.is-invalid ~ .invalid-feedback {
+    display: block;
+}
+.pagination {
+    display: none;
+}
+.pagination:has(li:not(:only-child)) {
+    display: flex;
+}
